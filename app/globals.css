@@ -1,6 +1,10 @@
 @import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/nunito";
 
 :root {
+  --font-inter: 'Inter Variable';
+  --font-nunito: 'Nunito Variable';
   --green:#12A14B; --green-d:#0E853D; --green-s:#E4F6EA; --green-s2:#F2FBF5;
   --red:#E5322D; --red-d:#C4241F; --red-s:#FDEBEA;
   --yellow:#F0B90B; --yellow-d:#A87F00; --yellow-s:#FFF6DA;
