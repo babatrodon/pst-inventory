@@ -1,3 +1,5 @@
+name: pst-inventory
+
 services:
   db:
     image: postgres:16-alpine
@@ -23,10 +25,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    expose:
-      - "3000"
+    ports:
+      - "${APP_PORT:-3010}:3000"
 
   caddy:
+    profiles: ["proxy"]
     image: caddy:2-alpine
     restart: unless-stopped
     ports:

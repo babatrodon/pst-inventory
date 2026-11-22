@@ -1,6 +1,24 @@
 # PST Inventory · VPS deployment
 
-One command stack: the app, PostgreSQL 16, automatic HTTPS and a nightly database backup. Works on any Ubuntu or Debian VPS with 1 GB RAM or more.
+One stack: the app, PostgreSQL 16 and a nightly database backup, plus optional automatic HTTPS once a real domain exists. Works on any Ubuntu or Debian VPS with 1 GB RAM or more.
+
+## Shared VPS, zero impact on existing sites
+The stack is built to coexist with whatever already runs on the server:
+- Ports 80 and 443 are never used until you switch on the proxy profile yourself.
+- The app binds one high port of your choosing (`APP_PORT` in `.env`, default 3010).
+- Postgres stays on the internal Docker network, no port on the host.
+- All containers, networks and volumes carry the `pst-inventory` name, separate from every other project.
+Before starting, confirm the port is free: `ss -tlnp | grep :3010` must print nothing.
+
+## Temporary address, before any domain
+Set in `.env`:
+```
+APP_PORT=3010
+BETTER_AUTH_URL=http://YOUR-VPS-IP:3010
+```
+Start with `docker compose up -d --build` and open `http://YOUR-VPS-IP:3010`.
+A nicer temporary name without any registrar: `http://pst.YOUR-VPS-IP.nip.io:3010` resolves to the same server automatically.
+Honest note: this runs over plain http. Fine for a few days of internal use; move to the real subdomain with HTTPS for daily work.
 
 ## 1. Point your domain
 Create an A record for your chosen subdomain (example: `inventory.powersourcetrading.com`) to the VPS IP. Wait until `ping` answers from the VPS IP.
@@ -29,8 +47,10 @@ openssl rand -hex 32   # BETTER_AUTH_SECRET
 ```
 
 ## 5. Start
+Temporary mode (no domain): `docker compose up -d --build`
+Real domain with HTTPS: set `APP_PORT=127.0.0.1:3010`, `DOMAIN` and `BETTER_AUTH_URL=https://...` in `.env`, then
 ```bash
-docker compose up -d --build
+docker compose --profile proxy up -d --build
 ```
 First build takes a few minutes. Then open `https://your-domain` and sign in with the admin email and password from `.env`. The June 2024 opening stock (947 items) loads automatically on the first start.
 
