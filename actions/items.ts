@@ -1,6 +1,6 @@
 "use server";
 import { prisma } from "@/lib/prisma";
-import { assertUser, assertAdmin } from "@/lib/session";
+import { assertAdmin } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
@@ -25,7 +25,7 @@ const ItemSchema = z.object({
 }).refine(d => d.code.trim() || d.name.trim(), { message: "Code or description required" });
 
 export async function upsertItem(input: unknown) {
-  await assertUser();
+  await assertAdmin();
   const d = ItemSchema.parse(input);
   const data = {
     code: d.code.trim(), codeNorm: normCode(d.code),

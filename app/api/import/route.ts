@@ -83,7 +83,7 @@ async function parsePdf(buf: ArrayBuffer): Promise<ImportRow[]> {
 
 export async function POST(req: NextRequest) {
   const user = await getUser();
-  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!user || user.role !== "admin") return NextResponse.json({ error: "Admins only" }, { status: 403 });
   const form = await req.formData();
   const file = form.get("file");
   if (!(file instanceof File)) return NextResponse.json({ error: "No file" }, { status: 400 });

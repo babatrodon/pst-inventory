@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   const settings = await prisma.settings.findFirst() ?? { company: "Power Source Trading Est.", currency: "SAR" };
-  const agg = await prisma.$queryRaw<{ v: number }[]>`SELECT COALESCE(SUM("stockCached"*"cost"),0)::float8 v FROM "item"`;
+  const isAdmin = user.role === "admin";
+  const agg = isAdmin ? await prisma.$queryRaw<{ v: number }[]>`SELECT COALESCE(SUM("stockCached"*"cost"),0)::float8 v FROM "item"` : [];
   const value = agg[0]?.v ?? 0;
   return (
     <>
@@ -21,10 +22,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <h1 className="text-[17px] leading-tight truncate" style={{ color: "var(--blue)" }}>{settings.company}</h1>
             <span className="sub tracking-widest uppercase text-[11px]">Inventory System · Riyadh</span>
           </div>
-          <div className="rounded-2xl px-4 py-2 text-right border" style={{ background: "var(--green-s)", borderColor: "#C8EBD4" }}>
-            <b className="num block text-[16px]" style={{ color: "var(--green-d)" }}>{settings.currency} {fmt(value)}</b>
-            <i className="not-italic text-[10px] font-bold uppercase tracking-wide" style={{ color: "#4E8A64" }}>Stock value</i>
-          </div>
+          {isAdmin && (
+            <div className="rounded-2xl px-4 py-2 text-right border" style={{ background: "var(--green-s)", borderColor: "#C8EBD4" }}>
+              <b className="num block text-[16px]" style={{ color: "var(--green-d)" }}>{settings.currency} {fmt(value)}</b>
+              <i className="not-italic text-[10px] font-bold uppercase tracking-wide" style={{ color: "#4E8A64" }}>Stock value</i>
+            </div>
+          )}
         </div>
       </header>
       <Nav name={user.name} role={user.role} />

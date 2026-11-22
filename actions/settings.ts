@@ -33,9 +33,16 @@ const NewUser = z.object({
 export async function createUser(input: unknown) {
   await assertAdmin();
   const d = NewUser.parse(input);
-  const res = await auth.api.signUpEmail({ body: { name: d.name, email: d.email, password: d.password } });
-  if (!res.user) throw new Error("Could not create the user");
-  await prisma.user.update({ where: { id: res.user.id }, data: { role: d.role } });
+  const email = d.email.trim().toLowerCase();
+  const exists = await prisma.user.findUnique({ where: { email } });
+  if (exists) throw new Error("A user with this email already exists");
+  const ctx = await auth.$context;
+  const hash = await ctx.password.hash(d.password);
+  const id = crypto.randomUUID();
+  await prisma.$transaction([
+    prisma.user.create({ data: { id, name: d.name.trim(), email, emailVerified: true, role: d.role } }),
+    prisma.account.create({ data: { id: crypto.randomUUID(), userId: id, providerId: "credential", accountId: id, password: hash } }),
+  ]);
   revalidatePath("/settings");
   return { ok: true as const };
 }

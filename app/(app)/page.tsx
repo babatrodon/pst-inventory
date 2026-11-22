@@ -7,7 +7,8 @@ import { MovementDialog, CountDialog, ItemFormDialog } from "@/components/dialog
 export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
-  await requireUser();
+  const user = await requireUser();
+  const isAdmin = user.role === "admin";
   const settings = await prisma.settings.findFirst();
   const defMin = Number(settings?.defMin ?? 0);
   const monthStart = new Date(thisMonth() + "-01T00:00:00Z");
@@ -43,8 +44,8 @@ export default async function Dashboard() {
   const mx = brands[0]?.v || 1;
 
   const kpis = [
-    ["Stock value", `SAR ${fmt(agg.value)}`, `${agg.items} different items`, "b"],
-    ["Pieces in stock", qf(agg.units), "all brands together", "b"],
+    ...(isAdmin ? [["Stock value", `SAR ${fmt(agg.value)}`, `${agg.items} different items`, "b"] as const] : []),
+    ["Pieces in stock", qf(agg.units), isAdmin ? "all brands together" : `${agg.items} different items`, "b"],
     ["Added this month", `+${qf(mon.min)}`, "pieces received", "g"],
     ["Taken out this month", `−${qf(mon.mout)}`, "pieces gone out", "g"],
     ["Low stock", String(agg.low), agg.low ? "running out soon" : "nothing running low", "y"],
@@ -54,11 +55,11 @@ export default async function Dashboard() {
   return (
     <div className="grid gap-4">
       <div className="grid gap-3 no-pr" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))" }}>
-        <MovementDialog mode="IN" triggerClass="btn btn-p !py-4 flex-col disp" trigger={<>Add stock</>} />
+        <MovementDialog mode="IN" showCost={isAdmin} triggerClass="btn btn-p !py-4 flex-col disp" trigger={<>Add stock</>} />
         <MovementDialog mode="OUT" triggerClass="btn btn-b !py-4 flex-col disp" trigger={<>Stock out</>} />
         <CountDialog triggerClass="btn btn-y !py-4 flex-col disp" trigger={<>Count stock</>} />
-        <Link href="/import" className="btn btn-o !py-4 disp" style={{ color: "var(--blue)" }}>Import / Bulk add</Link>
-        <ItemFormDialog brands={brandList} cats={cats} isAdmin triggerClass="btn btn-o !py-4 disp" trigger={<>New item</>} />
+        {isAdmin && <Link href="/import" className="btn btn-o !py-4 disp" style={{ color: "var(--blue)" }}>Import / Bulk add</Link>}
+        {isAdmin && <ItemFormDialog brands={brandList} cats={cats} isAdmin triggerClass="btn btn-o !py-4 disp" trigger={<>New item</>} />}
       </div>
       <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(175px,1fr))" }}>
         {kpis.map(([l, v, s, c]) => (
@@ -67,7 +68,7 @@ export default async function Dashboard() {
         ))}
       </div>
       <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))" }}>
-        <div className="card">
+        {isAdmin && <div className="card">
           <div className="card-h"><h2>Stock value by brand</h2><span className="sub num">{brands.length} brands</span></div>
           <div className="card-b">
             {brands.map(b => (
@@ -76,7 +77,7 @@ export default async function Dashboard() {
                 <b className="num text-right">{fmt(b.v)}</b></div>
             ))}
           </div>
-        </div>
+        </div>}
         <div className="card">
           <div className="card-h"><h2>{attention.length ? "Needs attention" : "All stock levels healthy"}</h2><span className="sub">lowest stock first</span></div>
           <div className="overflow-x-auto"><table className="t">
@@ -94,7 +95,7 @@ export default async function Dashboard() {
         <div className="card" style={{ gridColumn: "1/-1" }}>
           <div className="card-h"><h2>Latest activity</h2><Link href="/movements" className="btn btn-o btn-sm">Open full history</Link></div>
           <div className="overflow-x-auto"><table className="t">
-            <thead><tr><th>Date</th><th>Type</th><th>Item</th><th className="r">Qty</th><th className="r">Value</th><th>Who</th></tr></thead>
+            <thead><tr><th>Date</th><th>Type</th><th>Item</th><th className="r">Qty</th>{isAdmin && <th className="r">Value</th>}<th>Who</th></tr></thead>
             <tbody>
               {recent.length === 0 && <tr><td className="hint p-4" colSpan={6}>Nothing recorded yet. Use the big buttons on top: Add stock, Stock out or Count stock.</td></tr>}
               {recent.map(m => {
@@ -104,7 +105,7 @@ export default async function Dashboard() {
                   <td><span className={`bdg ${TYPE_BDG[m.type]}`}>{TYPE_LBL[m.type]}</span></td>
                   <td><span className="code">{m.item.code || "–"}</span> <span className="dim">{m.item.name}</span></td>
                   <td className={`r num ${s >= 0 ? "pos" : "neg"}`}>{s >= 0 ? "+" : "−"}{qf(Math.abs(s))}</td>
-                  <td className="r num">{fmt(Number(m.qty) * Number(m.unitCost))}</td>
+                  {isAdmin && <td className="r num">{fmt(Number(m.qty) * Number(m.unitCost))}</td>}
                   <td className="dim">{m.party}</td></tr>);
               })}
             </tbody>

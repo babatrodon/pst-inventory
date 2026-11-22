@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const user = await getUser();
-  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!user || user.role !== "admin") return NextResponse.json({ error: "Admins only" }, { status: 403 });
   const sp = req.nextUrl.searchParams;
   const settings = await prisma.settings.findFirst();
   const cur = settings?.currency || "SAR";
