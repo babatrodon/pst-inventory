@@ -34,14 +34,14 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
       <div className="card-h">
         <h2>Stock history <span className="sub num">{n} records{n > 300 ? " · latest 300 shown" : ""}</span></h2>
         <div className="flex gap-2 flex-wrap no-pr">
-          <MovementDialog mode="IN" showCost={user.role === "admin"} triggerClass="btn btn-p btn-sm" trigger={<>Add stock</>} />
+          <MovementDialog mode="IN" triggerClass="btn btn-p btn-sm" trigger={<>Add stock</>} />
           <MovementDialog mode="OUT" triggerClass="btn btn-b btn-sm" trigger={<>Stock out</>} />
           <CountDialog triggerClass="btn btn-y btn-sm" trigger={<>Count stock</>} />
         </div>
       </div>
       <div className="card-b pb-3 no-pr"><MoveFilters /></div>
       <div className="overflow-auto" style={{ maxHeight: "68vh" }}>
-        <HistoryTable rows={hist} isAdmin={user.role === "admin"} showItem showMoney={user.role === "admin"} />
+        <HistoryTable rows={hist} isAdmin={user.role === "admin"} showItem />
       </div>
     </div>
   );

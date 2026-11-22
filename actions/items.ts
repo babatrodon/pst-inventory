@@ -17,7 +17,7 @@ const ItemSchema = z.object({
   brand: z.string().max(80).default("Other"),
   category: z.string().max(100).default("Uncategorized"),
   unit: z.string().max(20).default("PCS"),
-  cost: z.coerce.number().min(0),
+  cost: z.coerce.number().min(0).default(0),
   listPrice: z.coerce.number().min(0).nullable().optional(),
   discountPct: z.coerce.number().min(0).max(100).nullable().optional(),
   minStock: z.coerce.number().min(0).default(0),

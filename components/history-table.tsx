@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { deleteMovement } from "@/actions/movements";
 import { toast } from "./toast";
-import { fmt, qf, TYPE_LBL, TYPE_BDG } from "@/lib/utils";
+import { qf, TYPE_LBL, TYPE_BDG } from "@/lib/utils";
 
 export type HistRow = {
   id: string; date: string; type: string; qty: number; unitCost: number;
@@ -11,8 +11,8 @@ export type HistRow = {
   code?: string; name?: string;
 };
 
-export function HistoryTable({ rows, isAdmin, showItem, showBalance, showMoney = true }: {
-  rows: HistRow[]; isAdmin: boolean; showItem?: boolean; showBalance?: boolean; showMoney?: boolean;
+export function HistoryTable({ rows, isAdmin, showItem, showBalance }: {
+  rows: HistRow[]; isAdmin: boolean; showItem?: boolean; showBalance?: boolean;
 }) {
   const router = useRouter();
   const [, start] = useTransition();
@@ -27,8 +27,6 @@ export function HistoryTable({ rows, isAdmin, showItem, showBalance, showMoney =
         <th>Date</th><th>Type</th>
         {showItem && <th>Item</th>}
         <th className="r">Qty</th>
-        {showMoney && <th className="r hidden md:table-cell">Unit cost</th>}
-        {showMoney && <th className="r">Value</th>}
         {showBalance && <th className="r">Balance</th>}
         <th className="hidden md:table-cell">Who</th><th className="hidden lg:table-cell">Ref</th>
         <th className="hidden lg:table-cell">By</th>
@@ -44,8 +42,7 @@ export function HistoryTable({ rows, isAdmin, showItem, showBalance, showMoney =
               <td><span className={`bdg ${TYPE_BDG[m.type]}`}>{TYPE_LBL[m.type]}</span></td>
               {showItem && <td><span className="code">{m.code || "–"}</span> <span className="dim hidden md:inline">{m.name}</span></td>}
               <td className={`r num ${s >= 0 ? "pos" : "neg"}`}>{s >= 0 ? "+" : "−"}{qf(Math.abs(s))}</td>
-              {showMoney && <td className="r num hidden md:table-cell">{fmt(m.unitCost)}</td>}
-              {showMoney && <td className="r num">{fmt(m.qty * m.unitCost)}</td>}
+
               {showBalance && <td className="r num font-extrabold">{qf(m.balance ?? 0)}</td>}
               <td className="dim hidden md:table-cell">{m.party}</td>
               <td className="dim hidden lg:table-cell">{m.ref}</td>

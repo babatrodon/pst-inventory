@@ -6,7 +6,7 @@ import { ItemCombo, type ComboItem } from "./item-combo";
 import { toast } from "./toast";
 import { recordMovement, applyCount } from "@/actions/movements";
 import { upsertItem, deleteItems } from "@/actions/items";
-import { fmt, qf, todayStr } from "@/lib/utils";
+import { qf, todayStr } from "@/lib/utils";
 
 function run(fn: () => Promise<unknown>, after: () => void) {
   return fn().then(() => after()).catch((e: Error) => toast(e.message || "Something went wrong", "err"));
@@ -15,22 +15,20 @@ const onEnter = (fn: () => void) => (e: React.KeyboardEvent) => {
   if (e.key === "Enter" && (e.target as HTMLElement).tagName !== "TEXTAREA") { e.preventDefault(); fn(); }
 };
 
-export function MovementDialog({ mode, item, trigger, triggerClass, showCost = true }: {
-  mode: "IN" | "OUT"; item?: ComboItem | null; trigger: React.ReactNode; triggerClass?: string; showCost?: boolean;
+export function MovementDialog({ mode, item, trigger, triggerClass }: {
+  mode: "IN" | "OUT"; item?: ComboItem | null; trigger: React.ReactNode; triggerClass?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [sel, setSel] = useState<ComboItem | null>(null);
-  const [qty, setQty] = useState(""); const [cost, setCost] = useState("");
+  const [qty, setQty] = useState("");
   const [date, setDate] = useState(todayStr());
   const [party, setParty] = useState(""); const [refNo, setRefNo] = useState(""); const [note, setNote] = useState("");
   const isOut = mode === "OUT";
-  const effCost = isOut ? (sel?.cost ?? 0) : (parseFloat(cost) || sel?.cost || 0);
-  const total = (parseFloat(qty) || 0) * effCost;
 
   function openDlg() {
-    setSel(item ?? null); setQty(""); setCost(item && !isOut ? String(item.cost) : "");
+    setSel(item ?? null); setQty("");
     setDate(todayStr()); setParty(""); setRefNo(""); setNote(""); setOpen(true);
   }
   function save() {
@@ -39,9 +37,7 @@ export function MovementDialog({ mode, item, trigger, triggerClass, showCost = t
     if (!q || q <= 0) return toast("Enter how many", "err");
     if (isOut && q > sel.stock && !confirm(`Only ${qf(sel.stock)} shows in stock. Save anyway? The number goes below zero until corrected.`)) return;
     start(() => run(
-      () => recordMovement({ itemId: sel.id, type: mode, qty: q,
-        unitCost: isOut || !showCost ? undefined : (parseFloat(cost) || undefined),
-        date, party, ref: refNo, note }),
+      () => recordMovement({ itemId: sel.id, type: mode, qty: q, date, party, ref: refNo, note }),
       () => { setOpen(false); router.refresh(); toast(isOut ? "Stock out saved" : "Stock added"); }
     ));
   }
@@ -50,7 +46,6 @@ export function MovementDialog({ mode, item, trigger, triggerClass, showCost = t
     <Modal open={open} onClose={() => setOpen(false)}
       title={isOut ? "Stock out · goods going out" : "Add stock · goods received"}
       footer={<>
-        {showCost && <span className="hint num flex-1 text-[15px]">{total > 0 ? `Value: SAR ${fmt(total)}` : ""}</span>}
         <button type="button" className="btn btn-o" onClick={() => setOpen(false)}>Cancel</button>
         <button type="button" className={`btn ${isOut ? "btn-b" : "btn-p"}`} onClick={save} disabled={pending}>
           {pending ? "Saving…" : isOut ? "Save stock out" : "Save stock"}</button>
@@ -58,15 +53,13 @@ export function MovementDialog({ mode, item, trigger, triggerClass, showCost = t
       <div className="grid gap-3.5" onKeyDown={onEnter(save)}>
         <div><label className="f">Which item?</label>
           {item && sel ? <input className="in" value={`${sel.code}${sel.name ? " · " + sel.name : ""}`} readOnly />
-            : <ItemCombo onPick={x => { setSel(x); if (!isOut && showCost) setCost(String(x.cost)); }} />}
+            : <ItemCombo onPick={setSel} />}
           <div className="hint mt-1.5">{sel ? `In stock now: ${qf(sel.stock)}` : "Type to search by code or name."}</div></div>
         <div className="grid grid-cols-2 gap-3.5">
           <div><label className="f">How many? *</label>
             <input className="in num text-[17px]" type="number" step="any" min="0" inputMode="decimal"
               value={qty} onChange={e => setQty(e.target.value)} placeholder="0" /></div>
           <div><label className="f">Date</label><input className="in" type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
-          {!isOut && showCost && <div><label className="f">Cost for 1 piece (optional)</label>
-            <input className="in num" type="number" step="any" min="0" inputMode="decimal" value={cost} onChange={e => setCost(e.target.value)} /></div>}
           <div><label className="f">{isOut ? "Reference no." : "Reference / PO"}</label>
             <input className="in" value={refNo} onChange={e => setRefNo(e.target.value)} /></div>
         </div>
@@ -141,13 +134,8 @@ export function ItemFormDialog({ item, brands, cats, isAdmin, trigger, triggerCl
     const ex = rows.find(x => x.id !== item?.id);
     setDupHint(ex ? `This code already exists: ${ex.name || ex.category} · stock ${qf(ex.stock)}` : "");
   }
-  function calcCost(lp: string, disc: string) {
-    const l = parseFloat(lp), d = parseFloat(disc);
-    if (!isNaN(l) && !isNaN(d)) setF(p => ({ ...p, cost: +(l * (1 - d / 100)).toFixed(4) }));
-  }
   function save() {
     if (!String(f.code).trim() && !String(f.name).trim()) return toast("Give the item a code or a description", "err");
-    if (isNaN(Number(f.cost))) return toast("Cost is required", "err");
     if (dupHint && !dupOk) { setDupOk(true); return toast("Code already exists. Press save again to keep both lines.", "err"); }
     start(() => run(
       () => upsertItem({ ...f, listPrice: f.listPrice === null || String(f.listPrice) === "" ? null : f.listPrice, discountPct: f.discountPct === null || String(f.discountPct) === "" ? null : f.discountPct }),
@@ -181,12 +169,9 @@ export function ItemFormDialog({ item, brands, cats, isAdmin, trigger, triggerCl
           <datalist id="dl-brands">{brands.map(b => <option key={b} value={b} />)}</datalist></div>
         <div><label className="f">Category</label><input className="in" list="dl-cats" value={f.category} onChange={e => set("category", e.target.value)} />
           <datalist id="dl-cats">{cats.map(c => <option key={c} value={c} />)}</datalist></div>
-        <div><label className="f">List price</label><input className="in num" type="number" step="any" inputMode="decimal" value={f.listPrice ?? ""} onChange={e => { set("listPrice", e.target.value); calcCost(e.target.value, String(f.discountPct ?? "")); }} /></div>
-        <div><label className="f">Discount %</label><input className="in num" type="number" step="any" inputMode="decimal" value={f.discountPct ?? ""} onChange={e => { set("discountPct", e.target.value); calcCost(String(f.listPrice ?? ""), e.target.value); }} /></div>
-        <div><label className="f">Cost for 1 piece (SAR) *</label><input className="in num" type="number" step="any" inputMode="decimal" value={f.cost} onChange={e => set("cost", e.target.value)} /></div>
         <div><label className="f">Alert me when stock is at</label><input className="in num" type="number" step="any" inputMode="decimal" value={f.minStock} onChange={e => set("minStock", e.target.value)} /></div>
         <div><label className="f">{item?.id ? "Opening qty" : "Quantity now *"}</label><input className="in num" type="number" step="any" inputMode="decimal" value={f.openingQty} onChange={e => set("openingQty", e.target.value)} /></div>
-        <div className="col-span-2 hint">List price and discount fill the cost for you. After saving, use Add stock / Stock out for daily changes.</div>
+        <div className="col-span-2 hint">After saving, use Add stock / Stock out for daily changes.</div>
       </div>
     </Modal>
   </>);

@@ -3,7 +3,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import type { ItemRow } from "@/lib/items-query";
-import { fmt, qf, STATUS_LBL } from "@/lib/utils";
+import { qf, STATUS_LBL } from "@/lib/utils";
 import { MovementDialog, ItemFormDialog } from "./dialogs";
 import { toast } from "./toast";
 import { deleteItems, bulkSetField } from "@/actions/items";
@@ -57,7 +57,7 @@ export function ItemsClient(p: Props) {
   return (
     <div className="card">
       <div className="card-h">
-        <h2>Stock list <span className="sub num">{p.totals.n} items · {qf(p.totals.units)} pcs{p.isAdmin ? ` · ${p.currency} ${fmt(p.totals.value)}` : ""}</span></h2>
+        <h2>Stock list <span className="sub num">{p.totals.n} items · {qf(p.totals.units)} pcs</span></h2>
         {p.isAdmin && <div className="flex gap-2 flex-wrap no-pr">
           <a className="btn btn-o btn-sm" href={`/api/export/items?${sp.toString()}`}>Excel</a>
           <Link className="btn btn-b btn-sm" href="/import">Import</Link>
@@ -77,7 +77,6 @@ export function ItemsClient(p: Props) {
           <select className="in w-auto" value={p.params.sort} onChange={e => setParam("sort", e.target.value)}>
             <option value="">Sort: Code</option><option value="name">Sort: Description</option>
             <option value="qty_desc">Most stock first</option><option value="qty_asc">Least stock first</option>
-            {p.isAdmin && <option value="value_desc">Highest value first</option>}
           </select>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -103,13 +102,11 @@ export function ItemsClient(p: Props) {
             {p.isAdmin && <th className="c no-pr" style={{ width: 34 }}><input type="checkbox" checked={p.rows.length > 0 && p.rows.every(r => sel.has(r.id))} onChange={e => toggleAll(e.target.checked)} /></th>}
             <th>Code</th><th>Description</th><th className="hidden lg:table-cell">Brand</th>
             <th className="hidden lg:table-cell">Category</th>
-            {p.isAdmin && <th className="r hidden md:table-cell">Cost</th>}
             <th className="r">Stock</th>
-            {p.isAdmin && <th className="r hidden md:table-cell">Value</th>}
             <th className="c hidden md:table-cell">Status</th><th className="c no-pr">Actions</th>
           </tr></thead>
           <tbody>
-            {p.rows.length === 0 && <tr><td colSpan={p.isAdmin ? 10 : 7} className="hint p-5">No items match. Clear a filter, or use Import / New item above.</td></tr>}
+            {p.rows.length === 0 && <tr><td colSpan={p.isAdmin ? 8 : 7} className="hint p-5">No items match. Clear a filter, or use Import / New item above.</td></tr>}
             {p.rows.map(r => {
               const [cls, lbl] = STATUS_LBL[r.status];
               const combo = { id: r.id, code: r.code, name: r.name, brand: r.brand, category: r.category, stock: r.stock, cost: r.cost };
@@ -120,12 +117,10 @@ export function ItemsClient(p: Props) {
                   <td><Link href={`/items/${r.id}`} className="text-inherit">{r.name || <span className="dim">–</span>}</Link></td>
                   <td className="hidden lg:table-cell"><span className="bdg b-brand">{r.brand}</span></td>
                   <td className="hidden lg:table-cell dim">{r.category}</td>
-                  {p.isAdmin && <td className="r num hidden md:table-cell">{fmt(r.cost)}</td>}
                   <td className="r num text-[15px]">{qf(r.stock)}</td>
-                  {p.isAdmin && <td className="r num hidden md:table-cell">{fmt(r.value)}</td>}
                   <td className="c hidden md:table-cell"><span className={`bdg ${cls}`}>{lbl}</span></td>
                   <td className="c no-pr whitespace-nowrap">
-                    <MovementDialog mode="IN" item={combo} showCost={p.isAdmin} triggerClass="btn btn-p btn-sm" trigger={<>Add</>} />{" "}
+                    <MovementDialog mode="IN" item={combo} triggerClass="btn btn-p btn-sm" trigger={<>Add</>} />{" "}
                     <MovementDialog mode="OUT" item={combo} triggerClass="btn btn-b btn-sm" trigger={<>Out</>} />
                   </td>
                 </tr>
@@ -134,9 +129,7 @@ export function ItemsClient(p: Props) {
             {p.rows.length > 0 && (
               <tr className="tot">{p.isAdmin && <td className="no-pr" />}<td colSpan={2}>TOTAL (filtered)</td>
                 <td className="hidden lg:table-cell" /><td className="hidden lg:table-cell" />
-                {p.isAdmin && <td className="hidden md:table-cell" />}
                 <td className="r num">{qf(p.totals.units)}</td>
-                {p.isAdmin && <td className="r num hidden md:table-cell">{fmt(p.totals.value)}</td>}
                 <td className="hidden md:table-cell" /><td className="no-pr" /></tr>
             )}
           </tbody>

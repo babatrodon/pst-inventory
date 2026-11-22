@@ -34,8 +34,8 @@ export function ImportClient({ brands, cats }: { brands: string[]; cats: string[
     setRows(d.rows); setFname(d.fname);
   }
   function template() {
-    const aoa = [["ITEM CODE", "DESCRIPTION", "BRAND", "CATEGORY", "QTY", "UNIT COST", "LIST PRICE", "DISCOUNT %", "MIN STOCK", "UNIT"],
-      ["LC1D09M7", "TeSys D Contactor 9A 220V", "Schneider Electric", "Contactors", 10, 55.65, 159, 65, 5, "PCS"]];
+    const aoa = [["ITEM CODE", "DESCRIPTION", "BRAND", "CATEGORY", "QTY", "MIN STOCK", "UNIT"],
+      ["LC1D09M7", "TeSys D Contactor 9A 220V", "Schneider Electric", "Contactors", 10, 5, "PCS"]];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = aoa[0].map(h => ({ wch: String(h).length + 4 }));
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Items");
@@ -64,7 +64,7 @@ export function ImportClient({ brands, cats }: { brands: string[]; cats: string[
         <div className="flex flex-col items-center gap-3 p-7 rounded-2xl border-2 border-dashed text-center"
           style={{ borderColor: "#BFD9C9", background: "var(--green-s2)" }}>
           <div className="font-extrabold disp text-[16px]">Excel, CSV, PDF or by hand</div>
-          <div className="hint max-w-[430px]">The app looks for: <b>ITEM CODE, DESCRIPTION, QTY, UNIT COST</b>. Extra columns are okay. You check everything on the next screen before saving.</div>
+          <div className="hint max-w-[430px]">The app looks for: <b>ITEM CODE, DESCRIPTION, QTY</b>. Extra columns are okay. You check everything on the next screen before saving.</div>
           <div className="flex gap-2.5 flex-wrap justify-center">
             <button className="btn btn-p" disabled={busy} onClick={() => fx.current?.click()}>{busy ? "Reading…" : "Choose Excel / CSV"}</button>
             <button className="btn btn-b" disabled={busy} onClick={() => fp.current?.click()}>Choose PDF</button>
@@ -107,7 +107,7 @@ export function ImportClient({ brands, cats }: { brands: string[]; cats: string[
         <div className="overflow-auto rounded-xl border" style={{ maxHeight: "46vh", borderColor: "var(--line2)" }}>
           <table className="t">
             <thead><tr><th style={{ width: 36 }}>#</th><th style={{ minWidth: 130 }}>Code</th><th style={{ minWidth: 190 }}>Description</th>
-              <th className="r" style={{ width: 95 }}>Qty</th><th className="r" style={{ width: 110 }}>Cost</th><th style={{ width: 44 }} /></tr></thead>
+              <th className="r" style={{ width: 95 }}>Qty</th><th style={{ width: 44 }} /></tr></thead>
             <tbody>
               {rows.slice(0, CAP).map((r, i) => (
                 <tr key={i}>
@@ -115,7 +115,6 @@ export function ImportClient({ brands, cats }: { brands: string[]; cats: string[
                   <td><input className="in !min-h-[34px] !py-1 !text-[13px]" value={r.code} onChange={e => setRow(i, "code", e.target.value)} /></td>
                   <td><input className="in !min-h-[34px] !py-1 !text-[13px]" value={r.name} onChange={e => setRow(i, "name", e.target.value)} /></td>
                   <td><input className="in !min-h-[34px] !py-1 !text-[13px] text-right" type="number" step="any" value={r.qty} onChange={e => setRow(i, "qty", e.target.value)} /></td>
-                  <td><input className="in !min-h-[34px] !py-1 !text-[13px] text-right" type="number" step="any" value={r.cost} onChange={e => setRow(i, "cost", e.target.value)} /></td>
                   <td className="c"><button className="btn btn-o btn-sm" onClick={() => setRows(rs => rs!.filter((_, j) => j !== i))}>✕</button></td>
                 </tr>
               ))}

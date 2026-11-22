@@ -20,10 +20,8 @@ export async function GET(req: NextRequest) {
     orderBy: [{ code: "asc" }],
   });
   const aoa = [
-    ["ITEM CODE", "DESCRIPTION", "BRAND", "CATEGORY", "OPENING QTY", "CURRENT STOCK", "UNIT COST", "LIST PRICE", "DISCOUNT %", "MIN STOCK", "UNIT", "STOCK VALUE"],
-    ...rows.map(it => [it.code, it.name, it.brand, it.category, Number(it.openingQty), Number(it.stockCached),
-      Number(it.cost), it.listPrice ? Number(it.listPrice) : "", it.discountPct ? Number(it.discountPct) : "",
-      Number(it.minStock), it.unit, +(Number(it.stockCached) * Number(it.cost)).toFixed(2)]),
+    ["ITEM CODE", "DESCRIPTION", "BRAND", "CATEGORY", "CURRENT STOCK", "MIN STOCK", "UNIT"],
+    ...rows.map(it => [it.code, it.name, it.brand, it.category, Number(it.stockCached), Number(it.minStock), it.unit]),
   ];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws["!cols"] = aoa[0].map(h => ({ wch: Math.max(12, String(h).length + 2) }));

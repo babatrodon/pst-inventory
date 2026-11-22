@@ -2,7 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "./toast";
-import { fmt, qf } from "@/lib/utils";
+import { qf } from "@/lib/utils";
 import { updateSettings, createUser, resetPassword, deleteUser, setUserRole, dangerReset } from "@/actions/settings";
 import { scanDups, mergeGroups, makeUnique, type DupGroup } from "@/actions/dups";
 import { recomputeStock } from "@/actions/items";
@@ -109,7 +109,7 @@ export function SettingsClient({ meId, settings, users, dupCount, counts }: {
             <div className="flex gap-2"><button className="btn btn-o btn-sm" onClick={() => setGroups(null)}>Close</button>
               <button className="btn btn-p btn-sm" disabled={pending} onClick={doMerge}>Merge ticked groups</button></div></div>
           <div className="card-b grid gap-2.5" style={{ maxHeight: "60vh", overflow: "auto" }}>
-            <div className="hint"><b>Merge</b> combines lines into one: quantities add up, history stays, cost becomes the weighted average. Ticked automatically only where descriptions match. <b>Give own codes</b> keeps lines separate and makes every code unique, for one family code covering many products (sizes, colors, ratings).</div>
+            <div className="hint"><b>Merge</b> combines lines into one: quantities add up, history stays. Ticked automatically only where descriptions match. <b>Give own codes</b> keeps lines separate and makes every code unique, for one family code covering many products (sizes, colors, ratings).</div>
             {groups.map((g, gi) => (
               <div key={gi} className="border rounded-xl" style={{ borderColor: "var(--line)" }}>
                 <div className="flex items-center gap-2.5 flex-wrap px-3.5 py-2.5">
@@ -127,10 +127,9 @@ export function SettingsClient({ meId, settings, users, dupCount, counts }: {
                 </div>
                 <div className="px-3.5 pb-2.5">
                   {g.items.map(x => (
-                    <div key={x.id} className="bar" style={{ gridTemplateColumns: "1fr 110px 90px" }}>
+                    <div key={x.id} className="bar" style={{ gridTemplateColumns: "1fr 120px" }}>
                       <span className="dim">{x.name || "(no description)"} · {x.brand}</span>
                       <b className="num text-right">stock {qf(x.stock)}</b>
-                      <b className="num text-right">{fmt(x.cost)}</b>
                     </div>
                   ))}
                 </div>

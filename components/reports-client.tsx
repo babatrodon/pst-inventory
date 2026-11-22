@@ -83,7 +83,7 @@ export function ReportsClient({ brands }: { brands: string[] }) {
             <div><label className="f">Brand</label><select className="in" value={mBrand} onChange={e => setMBrand(e.target.value)}>
               <option value="">All brands</option>{brands.map(b => <option key={b}>{b}</option>)}</select></div>
             <button className="btn btn-b" disabled={busy} onClick={() => load(`type=monthly&month=${month}&brand=${encodeURIComponent(mBrand)}`)}>Create report</button>
-            <div className="hint">Opening, in, out, closing and value for every item.</div>
+            <div className="hint">Opening, in, out and closing pieces for every item.</div>
           </div></div>
         <div className="card"><div className="card-h"><h2>History log</h2></div>
           <div className="card-b grid gap-3">
@@ -96,12 +96,12 @@ export function ReportsClient({ brands }: { brands: string[] }) {
               <option value="ADJ_IN">Count +</option><option value="ADJ_OUT">Count −</option></select></div>
             <button className="btn btn-b" disabled={busy} onClick={() => load(`type=history&from=${from}&to=${to}&mtype=${mtype}`)}>Create report</button>
           </div></div>
-        <div className="card"><div className="card-h"><h2>Stock value today</h2></div>
+        <div className="card"><div className="card-h"><h2>Stock count today</h2></div>
           <div className="card-b grid gap-3">
             <div><label className="f">Brand</label><select className="in" value={vBrand} onChange={e => setVBrand(e.target.value)}>
               <option value="">All brands</option>{brands.map(b => <option key={b}>{b}</option>)}</select></div>
             <button className="btn btn-b" disabled={busy} onClick={() => load(`type=valuation&brand=${encodeURIComponent(vBrand)}`)}>Create report</button>
-            <div className="hint">Everything on hand, valued at unit cost.</div>
+            <div className="hint">Everything on hand, in pieces.</div>
           </div></div>
       </div>
       {rep && (

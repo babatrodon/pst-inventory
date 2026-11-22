@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { getUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { buildMonthly, buildHistoryLog, buildValuation, type Rep } from "@/lib/reports";
+import { buildMonthly, buildHistoryLog, buildStockToday, type Rep } from "@/lib/reports";
 import { thisMonth, todayStr } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -12,12 +12,11 @@ export async function GET(req: NextRequest) {
   if (!user || user.role !== "admin") return NextResponse.json({ error: "Admins only" }, { status: 403 });
   const sp = req.nextUrl.searchParams;
   const settings = await prisma.settings.findFirst();
-  const cur = settings?.currency || "SAR";
   const type = sp.get("type");
   let rep: Rep;
-  if (type === "monthly") rep = await buildMonthly(sp.get("month") || thisMonth(), sp.get("brand") || "", cur);
+  if (type === "monthly") rep = await buildMonthly(sp.get("month") || thisMonth(), sp.get("brand") || "");
   else if (type === "history") rep = await buildHistoryLog(sp.get("from") || "", sp.get("to") || "", sp.get("mtype") || "");
-  else if (type === "valuation") rep = await buildValuation(sp.get("brand") || "", cur, todayStr());
+  else if (type === "valuation") rep = await buildStockToday(sp.get("brand") || "", todayStr());
   else return NextResponse.json({ error: "Unknown report" }, { status: 400 });
 
   if (sp.get("format") === "xlsx") {
