@@ -1,0 +1,142 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String     @id
+  name          String
+  email         String     @unique
+  emailVerified Boolean    @default(false)
+  image         String?
+  role          String     @default("staff")
+  banned        Boolean?   @default(false)
+  banReason     String?
+  banExpires    DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  movements     Movement[]
+
+  @@map("user")
+}
+
+model Session {
+  id             String   @id
+  expiresAt      DateTime
+  token          String   @unique
+  ipAddress      String?
+  userAgent      String?
+  impersonatedBy String?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@map("verification")
+}
+
+enum MoveType {
+  IN
+  OUT
+  ADJ_IN
+  ADJ_OUT
+}
+
+model Item {
+  id          String     @id @default(cuid())
+  code        String     @default("")
+  codeNorm    String     @default("")
+  name        String     @default("")
+  brand       String     @default("Other")
+  category    String     @default("Uncategorized")
+  unit        String     @default("PCS")
+  cost        Decimal    @default(0) @db.Decimal(14, 4)
+  listPrice   Decimal?   @db.Decimal(14, 4)
+  discountPct Decimal?   @db.Decimal(7, 3)
+  minStock    Decimal    @default(0) @db.Decimal(14, 3)
+  openingQty  Decimal    @default(0) @db.Decimal(14, 3)
+  stockCached Decimal    @default(0) @db.Decimal(14, 3)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  movements   Movement[]
+
+  @@index([codeNorm])
+  @@index([brand])
+  @@index([category])
+  @@index([stockCached])
+  @@map("item")
+}
+
+model Movement {
+  id        String   @id @default(cuid())
+  itemId    String
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  type      MoveType
+  qty       Decimal  @db.Decimal(14, 3)
+  unitCost  Decimal  @default(0) @db.Decimal(14, 4)
+  date      DateTime @db.Date
+  party     String   @default("")
+  ref       String   @default("")
+  note      String   @default("")
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([itemId, date])
+  @@index([date])
+  @@index([type])
+  @@map("movement")
+}
+
+model Settings {
+  id        Int      @id @default(1)
+  company   String   @default("Power Source Trading Est.")
+  phone     String   @default("+966 506 299 482 - +966 566 114 323")
+  email     String   @default("anstrade@yahoo.com")
+  address   String   @default("Riyadh, Saudi Arabia")
+  currency  String   @default("SAR")
+  openLabel String   @default("Opening stock (June 2024)")
+  defMin    Decimal  @default(0) @db.Decimal(14, 3)
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
