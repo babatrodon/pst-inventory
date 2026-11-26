@@ -1,35 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as XLSX from "xlsx";
-import { getUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { todayStr } from "@/lib/utils";
+import { getUser } from "@/lib/session";
+import { todayStr, qf, statusOf, STATUS_LBL } from "@/lib/utils";
+import { exportResponse, type RepMeta, type RepX } from "@/lib/export-render";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const user = await getUser();
-  if (!user || user.role !== "admin") return NextResponse.json({ error: "Admins only" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   const sp = req.nextUrl.searchParams;
   const q = (sp.get("q") || "").trim();
-  const rows = await prisma.item.findMany({
+  const brand = sp.get("brand") || "";
+  const cat = sp.get("cat") || "";
+  const status = sp.get("status") || "";
+  const format = sp.get("format") || "xlsx";
+
+  const settings = await prisma.settings.findFirst();
+  const defMin = Number(settings?.defMin ?? 0);
+  const meta: RepMeta = {
+    company: settings?.company || "Power Source Trading Est.",
+    phone: settings?.phone || "", email: settings?.email || "", address: settings?.address || "",
+  };
+  const found = await prisma.item.findMany({
     where: {
-      ...(sp.get("brand") ? { brand: sp.get("brand")! } : {}),
-      ...(sp.get("cat") ? { category: sp.get("cat")! } : {}),
+      ...(brand ? { brand } : {}),
+      ...(cat ? { category: cat } : {}),
       ...(q ? { OR: [{ code: { contains: q, mode: "insensitive" } }, { name: { contains: q, mode: "insensitive" } }] } : {}),
     },
     orderBy: [{ code: "asc" }],
   });
-  const aoa = [
-    ["ITEM CODE", "DESCRIPTION", "BRAND", "CATEGORY", "CURRENT STOCK", "MIN STOCK", "UNIT"],
-    ...rows.map(it => [it.code, it.name, it.brand, it.category, Number(it.stockCached), Number(it.minStock), it.unit]),
-  ];
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = aoa[0].map(h => ({ wch: Math.max(12, String(h).length + 2) }));
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Items");
-  const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;
-  return new NextResponse(new Uint8Array(buf), { headers: {
-    "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "Content-Disposition": `attachment; filename="PST-Items-${todayStr()}.xlsx"`,
-  } });
+  const items = found
+    .map(it => ({ ...it, stock: Number(it.stockCached), st: statusOf(Number(it.stockCached), Number(it.minStock), defMin) }))
+    .filter(it => !status || it.st === status);
+
+  const today = todayStr();
+  const parts: string[] = [];
+  if (brand) parts.push(`Brand: ${brand}`);
+  if (cat) parts.push(`Category: ${cat}`);
+  if (q) parts.push(`Search: "${q}"`);
+  if (status) parts.push(STATUS_LBL[status]?.[1] || status);
+  const scope = parts.length ? parts.join(" - ") : "All items";
+  const totalUnits = items.reduce((a, x) => a + x.stock, 0);
+
+  if (format === "xlsx") {
+    const rep: RepX = {
+      title: "Items", subtitle: scope,
+      cols: ["ITEM CODE", "DESCRIPTION", "BRAND", "CATEGORY", "QTY", "MIN STOCK", "UNIT"],
+      aligns: ["l", "l", "l", "l", "r", "r", "l"],
+      rows: items.map(it => [it.code, it.name, it.brand, it.category, it.stock, Number(it.minStock), it.unit]),
+      foots: [], file: `PST-Items-${today}`,
+    };
+    return exportResponse("xlsx", rep, meta, today, true);
+  }
+  const rep: RepX = {
+    title: "Stock List", subtitle: `${scope} - ${items.length} items`,
+    cols: ["Code", "Description", "Brand", "Category", "Stock", "Unit", "Status"],
+    aligns: ["l", "l", "l", "l", "r", "l", "l"],
+    rows: items.map(it => [it.code, it.name, it.brand, it.category, qf(it.stock), it.unit, STATUS_LBL[it.st][1]]),
+    foots: [["TOTAL", "", "", "", qf(totalUnits), "", ""]],
+    file: `stock-list-${today}`,
+  };
+  return exportResponse(format, rep, meta, today);
 }

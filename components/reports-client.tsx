@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { toast } from "./toast";
+import { ExportMenu } from "./export-menu";
 import { thisMonth, todayStr } from "@/lib/utils";
 import type { Rep } from "@/lib/reports";
 
@@ -25,53 +26,6 @@ export function ReportsClient({ brands }: { brands: string[] }) {
     setQs(params);
     setData(await r.json());
     setTimeout(() => document.getElementById("repOut")?.scrollIntoView({ behavior: "smooth" }), 50);
-  }
-  async function pdf() {
-    if (!data) return;
-    const { jsPDF } = await import("jspdf");
-    const autoTable = (await import("jspdf-autotable")).default;
-    const rep = data.rep;
-    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-    doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(40, 83, 168);
-    doc.text(data.company || "", 14, 14);
-    doc.setFontSize(11); doc.setTextColor(18, 161, 75); doc.text(rep.title, 14, 21);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(102, 116, 140);
-    doc.text(`${rep.subtitle}   ·   ${data.phone || ""}   ·   ${data.email || ""}`, 14, 26.5);
-    const colStyles: Record<number, { halign: "right" }> = {};
-    rep.aligns.forEach((a, i) => { if (a === "r") colStyles[i] = { halign: "right" }; });
-    autoTable(doc, {
-      head: [rep.cols], body: rep.rows, foot: rep.foots, startY: 31,
-      styles: { fontSize: 7.3, cellPadding: 1.5, textColor: [31, 42, 61] },
-      headStyles: { fillColor: [18, 161, 75], textColor: 255, fontSize: 7.3 },
-      footStyles: { fillColor: [240, 244, 250], textColor: [31, 42, 61], fontStyle: "bold" },
-      alternateRowStyles: { fillColor: [248, 250, 253] }, columnStyles: colStyles,
-      didDrawPage: () => {
-        doc.setFontSize(8); doc.setTextColor(150);
-        doc.text(`Generated ${todayStr()} · ${data.address || ""}`, 14, doc.internal.pageSize.getHeight() - 7);
-        doc.text(`Page ${doc.internal.pages.length - 1}`, doc.internal.pageSize.getWidth() - 24, doc.internal.pageSize.getHeight() - 7);
-      },
-    });
-    doc.save(`${rep.file}.pdf`); toast("PDF downloaded");
-  }
-  function word() {
-    if (!data) return;
-    const rep = data.rep;
-    const esc = (s: string) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
-    const tbl = `<table><thead><tr>${rep.cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>
-      ${rep.rows.map(r => "<tr>" + r.map((v, i) => `<td style="text-align:${rep.aligns[i] === "r" ? "right" : "left"}">${esc(v)}</td>`).join("") + "</tr>").join("")}
-      ${rep.foots.map(r => "<tr>" + r.map((v, i) => `<td style="text-align:${rep.aligns[i] === "r" ? "right" : "left"};font-weight:bold;background:#F0F4FA">${esc(v)}</td>`).join("") + "</tr>").join("")}
-      </tbody></table>`;
-    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>
-      body{font-family:Calibri,Arial,sans-serif;font-size:10pt;color:#1F2A3D}h1{font-size:15pt;color:#2853A8;margin:0}h2{font-size:12pt;color:#12A14B;margin:2pt 0}
-      p.meta{color:#66748C;font-size:9pt;margin:2pt 0 10pt}table{border-collapse:collapse;width:100%}th,td{border:1pt solid #C9D2E6;padding:3pt 6pt;font-size:8.5pt}
-      th{background:#12A14B;color:#fff;text-align:left}</style></head><body>
-      <h1>${esc(data.company || "")}</h1><h2>${esc(rep.title)}</h2>
-      <p class="meta">${esc(rep.subtitle)} · ${esc(data.phone || "")} · ${esc(data.email || "")} · ${esc(data.address || "")}</p>${tbl}</body></html>`;
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + html], { type: "application/msword" }));
-    a.download = `${rep.file}.doc`; a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 500);
-    toast("Word file downloaded");
   }
   const rep = data?.rep;
   return (
@@ -108,12 +62,8 @@ export function ReportsClient({ brands }: { brands: string[] }) {
         <div className="card" id="repOut">
           <div className="card-h">
             <div><h2>{rep.title}</h2><div className="sub">{data?.company} · {rep.subtitle} · {rep.rows.length} rows</div></div>
-            <div className="flex gap-2 flex-wrap no-pr">
-              <button className="btn btn-d btn-sm" onClick={pdf}>PDF</button>
-              <a className="btn btn-p btn-sm" href={`/api/reports?${qs}&format=xlsx`}>Excel</a>
-              <button className="btn btn-b btn-sm" onClick={word}>Word</button>
-              <button className="btn btn-o btn-sm" onClick={() => window.print()}>Print</button>
-            </div>
+            <ExportMenu base={`/api/reports?${qs}`} triggerClass="btn btn-p btn-sm no-pr"
+              scopeLabel={`${rep.title} - ${rep.subtitle} - ${rep.rows.length} rows`} />
           </div>
           <div className="overflow-auto" style={{ maxHeight: "65vh" }}>
             <table className="t">

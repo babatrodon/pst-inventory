@@ -6,6 +6,7 @@ import type { ItemRow } from "@/lib/items-query";
 import { qf, STATUS_LBL } from "@/lib/utils";
 import { MovementDialog, ItemFormDialog } from "./dialogs";
 import { toast } from "./toast";
+import { ExportMenu } from "./export-menu";
 import { deleteItems, bulkSetField } from "@/actions/items";
 
 type Props = {
@@ -58,11 +59,13 @@ export function ItemsClient(p: Props) {
     <div className="card">
       <div className="card-h">
         <h2>Stock list <span className="sub num">{p.totals.n} items · {qf(p.totals.units)} pcs</span></h2>
-        {p.isAdmin && <div className="flex gap-2 flex-wrap no-pr">
-          <a className="btn btn-o btn-sm" href={`/api/export/items?${sp.toString()}`}>Excel</a>
-          <Link className="btn btn-b btn-sm" href="/import">Import</Link>
-          <ItemFormDialog brands={p.brands} cats={p.cats} isAdmin triggerClass="btn btn-p btn-sm" trigger={<>+ New item</>} />
-        </div>}
+        <div className="flex gap-2 flex-wrap no-pr">
+          <ExportMenu base={`/api/export/items?${sp.toString()}`} triggerClass="btn btn-o btn-sm"
+            scopeLabel={`${p.totals.n} items in the current view. Search and filters apply to the export.`}
+            note="The Excel file uses the same columns as the import, so an edited copy imports back cleanly." />
+          {p.isAdmin && <Link className="btn btn-b btn-sm" href="/import">Import</Link>}
+          {p.isAdmin && <ItemFormDialog brands={p.brands} cats={p.cats} isAdmin triggerClass="btn btn-p btn-sm" trigger={<>+ New item</>} />}
+        </div>
       </div>
       <div className="card-b pb-3 grid gap-2.5 no-pr">
         <div className="flex gap-2.5 flex-wrap">
